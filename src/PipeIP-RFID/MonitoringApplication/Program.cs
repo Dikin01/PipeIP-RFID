@@ -16,7 +16,7 @@ var updateFrequency = TimeSpan.FromMilliseconds(100);
 var outWriter = Console.Out;
 var keyBuffer = ConsoleKey.NoName;
 
-Console.WriteLine("This program will monitor all SmartCard readers.");
+outWriter.WriteLine("This program will monitor all SmartCard readers.");
 outWriter.WriteLine($"Enter {stopKey} to stop monitoring.");
 
 using var cardMonitor = new CardMonitor(monitorName, outWriter, sendEventEndpoint);
