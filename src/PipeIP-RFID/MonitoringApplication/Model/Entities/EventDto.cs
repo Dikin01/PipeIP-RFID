@@ -3,7 +3,7 @@
 public record EventDto(
     string Description,
     string Place,
-    string Initiator,
+    string Monitor,
     DateTime DateTime,
     Dictionary<string, string> Data
 );

@@ -1,4 +1,6 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using MonitoringApplication.Model.Entities;
 using MonitoringApplication.Model.Exceptions;
 using MonitoringApplication.Model.Extensions;
@@ -37,6 +39,12 @@ public class CardMonitor : IDisposable
     {
         _sCardMonitor.Cancel();
         _sCardMonitor.CardInserted -= HandleCardInserted;
+    }
+
+    private static string[] GetReaderNames()
+    {
+        using var context = ContextFactory.Instance.Establish(SCardScope.System);
+        return context.GetReaders();
     }
 
     private void HandleCardInserted(object sender, CardEventArgs eventArgs)
@@ -90,16 +98,20 @@ public class CardMonitor : IDisposable
             }
         );
 
-        SendEventByUriAsync(eventDto);
+        Task.Run(() => SendEventByUriAsync(eventDto));
     }
 
     private async Task SendEventByUriAsync(EventDto dto)
     {
-        var httpClient = new HttpClient();
+        using var httpClient = new HttpClient();
 
         try
         {
-            await httpClient.PostAsJsonAsync(_sendEventEndpoint, dto).ConfigureAwait(false);
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, _sendEventEndpoint);
+            var json = JsonSerializer.Serialize(dto);
+            requestMessage.Content = new StringContent(json, Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
+
+            await httpClient.SendAsync(requestMessage).ConfigureAwait(false);
         }
         catch (AggregateException e)
         {
@@ -114,14 +126,9 @@ public class CardMonitor : IDisposable
         }
     }
 
-    private static string[] GetReaderNames()
-    {
-        using var context = ContextFactory.Instance.Establish(SCardScope.System);
-        return context.GetReaders();
-    }
-
     public void Dispose()
     {
+        _sCardMonitor.Cancel();
         _sCardMonitor.Dispose();
     }
 }
